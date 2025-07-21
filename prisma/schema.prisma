@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationRole {
+  admin
+  member
+}
+
+enum InvoiceStatus {
+  generated
+  paid
+  canceled
+}
+
+enum SubscriptionStatus {
+  active
+  canceled
+  past_due
+  incomplete
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  expired
+}
+
+enum ClientType {
+  user
+  client
+}
+
+enum OrganizationType {
+  persona_fisica
+  persona_moral
+  despacho_contable
+}
+
+model Profile {
+  profileId              String     @id @default(dbgenerated("uuid_generate_v4()")) @map("profile_id") @db.Uuid
+  authUserId             String?    @unique @map("auth_user_id") @db.VarChar(255)
+  email                  String     @unique @db.VarChar(255)
+  name                   String?    @db.VarChar(255)
+  phone                  String?    @db.VarChar(50)
+  clientType             ClientType @default(user) @map("client_type")
+  parentOrganizationId   String?    @map("parent_organization_id") @db.Uuid
+  creditLimit            Int?       @default(0) @map("credit_limit")
+  creditsUsed            Int?       @default(0) @map("credits_used")
+  isActive               Boolean    @default(true) @map("is_active")
+  alternateEmail         String?    @map("alternate_email") @db.VarChar(255)
+  createdAt              DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organizationProfiles   OrganizationProfile[]
+  createdInvoices        Invoice[]
+  sentInvitations        Invitation[]
+  clientTaxProfiles      ClientTaxProfile[]
+  parentOrganization     Organization? @relation("ClientProfiles", fields: [parentOrganizationId], references: [organizationId], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Organization {
+  organizationId   String           @id @default(dbgenerated("uuid_generate_v4()")) @map("organization_id") @db.Uuid
+  name             String           @db.VarChar(255)
+  organizationType OrganizationType @default(persona_fisica) @map("organization_type")
+  creditBalance    Int              @default(0) @map("credit_balance")
+  isPersonal       Boolean          @default(false) @map("is_personal")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  taxInformation       TaxInformation?
+  organizationProfiles OrganizationProfile[]
+  invoices             Invoice[]
+  subscription         Subscription?
+  invitations          Invitation[]
+  clientProfiles       Profile[] @relation("ClientProfiles")
+
+  @@map("organizations")
+}
+
+model TaxInformation {
+  taxInfoId             String @id @default(dbgenerated("uuid_generate_v4()")) @map("tax_info_id") @db.Uuid
+  organizationId        String @unique @map("organization_id") @db.Uuid
+  taxId                 String @unique @map("tax_id") @db.VarChar(20)
+  taxpayer              String @db.VarChar(255)
+  country               String? @db.VarChar(100)
+  postalCode            String? @map("postal_code") @db.VarChar(10)
+  csfDocumentUrl        String? @map("csf_document_url") @db.Text
+  invoiceCfdiUse        String? @map("invoice_cfdi_use") @db.VarChar(10)
+  invoiceFiscalRegimen  String? @map("invoice_fiscal_regimen") @db.VarChar(10)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [organizationId], onDelete: Cascade)
+
+  @@map("tax_information")
+}
+
+model OrganizationProfile {
+  profileId      String           @map("profile_id") @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  role           OrganizationRole @default(member)
+
+  profile      Profile      @relation(fields: [profileId], references: [profileId], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [organizationId], onDelete: Cascade)
+
+  @@id([profileId, organizationId])
+  @@map("organization_profiles")
+}
+
+model Invoice {
+  invoiceId           String        @id @default(dbgenerated("uuid_generate_v4()")) @map("invoice_id") @db.Uuid
+  createdByProfileId  String        @map("created_by_profile_id") @db.Uuid
+  organizationId      String        @map("organization_id") @db.Uuid
+  status              InvoiceStatus @default(generated)
+  details             Json?
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  createdByProfile Profile      @relation(fields: [createdByProfileId], references: [profileId], onDelete: Restrict)
+  organization     Organization @relation(fields: [organizationId], references: [organizationId], onDelete: Restrict)
+
+  @@map("invoices")
+}
+
+model Subscription {
+  subscriptionId       String             @id @default(dbgenerated("uuid_generate_v4()")) @map("subscription_id") @db.Uuid
+  organizationId       String             @unique @map("organization_id") @db.Uuid
+  stripeSubscriptionId String?            @unique @map("stripe_subscription_id") @db.VarChar(255)
+  stripeCustomerId     String?            @map("stripe_customer_id") @db.VarChar(255)
+  status               SubscriptionStatus
+  planType             String?            @map("plan_type") @db.VarChar(100)
+  currentPeriodEnd     DateTime?          @map("current_period_end") @db.Timestamptz
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [organizationId], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Invitation {
+  invitationId        String           @id @default(dbgenerated("uuid_generate_v4()")) @map("invitation_id") @db.Uuid
+  organizationId      String           @map("organization_id") @db.Uuid
+  invitedByProfileId  String           @map("invited_by_profile_id") @db.Uuid
+  inviteeEmail        String           @map("invitee_email") @db.VarChar(255)
+  token               String           @unique @db.Text
+  status              InvitationStatus @default(pending)
+  expiresAt           DateTime         @default(dbgenerated("NOW() + INTERVAL '7 days'")) @map("expires_at") @db.Timestamptz
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  organization    Organization @relation(fields: [organizationId], references: [organizationId], onDelete: Cascade)
+  invitedByProfile Profile      @relation(fields: [invitedByProfileId], references: [profileId], onDelete: Cascade)
+
+  @@unique([organizationId, inviteeEmail])
+  @@map("invitations")
+}
+
+model ClientTaxProfile {
+  taxProfileId         String  @id @default(dbgenerated("uuid_generate_v4()")) @map("tax_profile_id") @db.Uuid
+  profileId            String  @map("profile_id") @db.Uuid
+  name                 String  @db.VarChar(255) // "Personal", "Mi Empresa", etc.
+  taxId                String  @map("tax_id") @db.VarChar(20)
+  taxpayer             String  @db.VarChar(255)
+  country              String  @default("México") @db.VarChar(100)
+  postalCode           String  @map("postal_code") @db.VarChar(10)
+  invoiceCfdiUse       String  @map("invoice_cfdi_use") @db.VarChar(10)
+  invoiceFiscalRegimen String  @map("invoice_fiscal_regimen") @db.VarChar(10)
+  isDefault            Boolean @default(false) @map("is_default")
+  isActive             Boolean @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  profile Profile @relation(fields: [profileId], references: [profileId], onDelete: Cascade)
+
+  @@map("client_tax_profiles")
+}
