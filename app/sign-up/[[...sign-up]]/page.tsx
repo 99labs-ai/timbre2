@@ -20,24 +20,6 @@ function SignUpContent() {
               card: "bg-background border-border"
             }
           }}
-          additionalFieldsRequired={['firstName', 'lastName', 'phoneNumber']}
-          additionalFields={[
-            {
-              name: 'firstName',
-              label: 'Nombre',
-              required: true,
-            },
-            {
-              name: 'lastName', 
-              label: 'Apellido',
-              required: true,
-            },
-            {
-              name: 'phoneNumber',
-              label: 'Teléfono',
-              required: false,
-            }
-          ]}
         />
       </div>
     </div>

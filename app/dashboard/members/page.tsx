@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useUser, UserButton } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -20,7 +20,7 @@ interface Organization {
   role: 'admin' | 'member'
 }
 
-export default function MembersPage() {
+function MembersPageContent() {
   const { user } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -229,5 +229,13 @@ export default function MembersPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function MembersPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MembersPageContent />
+    </Suspense>
   )
 }

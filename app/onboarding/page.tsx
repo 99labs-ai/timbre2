@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser, UserButton } from '@clerk/nextjs'
 
@@ -22,7 +22,7 @@ interface OnboardingState {
   invitationToken?: string
 }
 
-export default function OnboardingPage() {
+function OnboardingPageContent() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -422,5 +422,13 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OnboardingPageContent />
+    </Suspense>
   )
 }

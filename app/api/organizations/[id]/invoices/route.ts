@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { currentUser } from '@clerk/nextjs/server'
+import { Prisma } from '@prisma/client'
+
+// Define the type for invoice with included relations
+type InvoiceWithProfile = Prisma.InvoiceGetPayload<{
+  include: {
+    createdByProfile: {
+      select: {
+        name: true
+      }
+    }
+  }
+}>
 
 export async function GET(
   req: NextRequest,
@@ -31,7 +43,7 @@ export async function GET(
     }
 
     // Fetch invoices for the organization
-    const queryOptions: any = {
+    const queryOptions: Prisma.InvoiceFindManyArgs = {
       where: { organizationId },
       include: {
         createdByProfile: {
@@ -50,7 +62,7 @@ export async function GET(
       queryOptions.take = parseInt(limit)
     }
 
-    const invoices = await prisma.invoice.findMany(queryOptions)
+    const invoices = await prisma.invoice.findMany(queryOptions) as InvoiceWithProfile[]
 
     // Format the invoices for the frontend
     const formattedInvoices = invoices.map(invoice => ({

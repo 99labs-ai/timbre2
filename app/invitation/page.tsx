@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -26,7 +26,7 @@ interface InvitationState {
   token: string | null
 }
 
-export default function InvitationPage() {
+function InvitationPageContent() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -259,4 +259,12 @@ export default function InvitationPage() {
   }
 
   return null
+}
+
+export default function InvitationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <InvitationPageContent />
+    </Suspense>
+  )
 }

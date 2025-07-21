@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useUser, UserButton } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
 
@@ -31,7 +31,7 @@ interface Organization {
   role: 'admin' | 'member'
 }
 
-export default function ClientsPage() {
+function ClientsPageContent() {
   const { user } = useUser()
   const searchParams = useSearchParams()
   const organizationId = searchParams.get('org') || (typeof window !== 'undefined' ? localStorage.getItem('selectedOrganizationId') : null)
@@ -603,5 +603,17 @@ export default function ClientsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ClientsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+      </div>
+    }>
+      <ClientsPageContent />
+    </Suspense>
   )
 }

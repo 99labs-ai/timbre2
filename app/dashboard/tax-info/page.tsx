@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useUser, UserButton } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
 
@@ -21,7 +21,7 @@ interface Organization {
   taxInformation: TaxInformation
 }
 
-export default function TaxInfoPage() {
+function TaxInfoPageContent() {
   const { user } = useUser()
   const searchParams = useSearchParams()
   const organizationId = searchParams.get('org') || (typeof window !== 'undefined' ? localStorage.getItem('selectedOrganizationId') : null)
@@ -363,5 +363,13 @@ export default function TaxInfoPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TaxInfoPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TaxInfoPageContent />
+    </Suspense>
   )
 }
